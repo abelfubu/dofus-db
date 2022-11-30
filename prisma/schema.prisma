@@ -1,0 +1,24 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model harvest {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  level   String
+	image   String
+  name    String
+  subzone String
+  type    Int
+	step    Int
+  zone    String
+}
+
+model user {
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  email String
+}
