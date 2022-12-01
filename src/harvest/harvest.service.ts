@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { harvest } from '@prisma/client';
-import { PrismaService } from './prisma.service';
+import { Harvest } from '@prisma/client';
+
+import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
-export class AppService {
+export class HarvestService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getHello(): Promise<harvest[]> {
+  getAll(): Promise<Harvest[]> {
     return this.prisma.harvest.findMany();
   }
 }
