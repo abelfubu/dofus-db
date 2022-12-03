@@ -8,34 +8,39 @@ datasource db {
 }
 
 model Harvest {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId
-  level   String
-	image   String
-  name    String
-  subzone String
-  type    Int
-	step    Int
-  zone    String
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  level           String
+  image           String
+  name            String
+  subzone         String
+  type            Int
+  step            Int
+  zone            String
+  harvestItemList HarvestItem[]
 }
 
 model HarvestItem {
-	id String @id @default(auto()) @map("_id") @db.ObjectId
-	captured Boolean @default(false)
-	amount Int @default(0)
-	userHarvest UserHarvest @relation(fields: [userHarvestId], references: [id])
-	userHarvestId String @db.ObjectId
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  captured      Boolean     @default(false)
+  amount        Int         @default(0)
+  userHarvest   UserHarvest @relation(fields: [userHarvestId], references: [id])
+  userHarvestId String      @db.ObjectId
+  harvest       Harvest     @relation(fields: [harvestId], references: [id])
+  harvestId     String      @db.ObjectId
 }
 
 model UserHarvest {
-	id String @id @default(auto()) @map("_id") @db.ObjectId
-	name String @default("default")
-	harvest HarvestItem[] 
-	user User @relation(fields: [userId], references: [id]) 
-	userId String @db.ObjectId
+  id      String        @id @default(auto()) @map("_id") @db.ObjectId
+  name    String        @default("default")
+  harvest HarvestItem[]
+  user    User          @relation(fields: [userId], references: [id])
+  userId  String        @db.ObjectId
 }
 
 model User {
-  id    String @id @default(auto()) @map("_id") @db.ObjectId
-  email String
-	harvest UserHarvest[]
+  id               String        @id @default(auto()) @map("_id") @db.ObjectId
+  email            String
+  password         String
+  currentHarvestId String        @default("")
+  harvest          UserHarvest[]
 }
