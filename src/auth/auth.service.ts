@@ -12,6 +12,7 @@ import { AuthCredentialsDto } from './models/auth-credentials.dto';
 import { JwtResponse } from './models/jwt-response';
 import { GoogleCredentialsDto } from './models/google-credentials.dto';
 import { OAuth2Client } from 'google-auth-library';
+import { UserCredentials } from './models/user-credentials';
 
 @Injectable()
 export class AuthService {
@@ -20,19 +21,11 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async createUser({
-    email,
-    password,
-  }: AuthCredentialsDto): Promise<JwtResponse> {
-    if (await this.findUser(email))
-      throw new ConflictException('User already exist in the database');
-
-    const hashedPassword = await this.hashPassword(password);
-
+  async createUser({ email, password }: UserCredentials): Promise<JwtResponse> {
     await this.prisma.user.create({
       data: {
         email,
-        password: hashedPassword,
+        password: password ? await this.hashPassword(password) : 'google',
         harvest: { create: { name: 'default' } },
       },
     });
@@ -40,19 +33,18 @@ export class AuthService {
     return this.generateAccessToken(email);
   }
 
-  async signInWithGoogle(
-    googleCredentials: GoogleCredentialsDto,
-  ): Promise<JwtResponse> {
-    const clientId = process.env.GOOGLE_CLIENT_ID;
+  async signInWithGoogle({
+    credential: idToken,
+  }: GoogleCredentialsDto): Promise<JwtResponse> {
+    const audience = process.env.GOOGLE_CLIENT_ID;
 
     try {
-      const client = new OAuth2Client(clientId);
-      const ticket = await client.verifyIdToken({
-        idToken: googleCredentials.credential,
-        audience: clientId,
-      });
-
+      const client = new OAuth2Client(audience);
+      const ticket = await client.verifyIdToken({ idToken, audience });
       const { email } = ticket.getPayload();
+      const user = await this.findUser(email);
+
+      if (!user) return this.createUser({ email });
 
       return this.generateAccessToken(email);
     } catch (error) {
@@ -64,6 +56,15 @@ export class AuthService {
     const user = await this.findUser(email);
 
     if (!user) return this.createUser({ email, password });
+
+    if (user.password === 'google') {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { password: await this.hashPassword(password) },
+      });
+
+      return this.generateAccessToken(email);
+    }
 
     if (!(await compare(password, user.password)))
       throw new UnauthorizedException();
