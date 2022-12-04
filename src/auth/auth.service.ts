@@ -2,8 +2,8 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import { compare, genSalt, hash } from 'bcrypt';
-
 import { OAuth2Client } from 'google-auth-library';
+
 import { PrismaService } from 'src/prisma.service';
 import { AuthCredentialsDto } from './models/auth-credentials.dto';
 import { GoogleCredentialsDto } from './models/google-credentials.dto';
@@ -34,7 +34,7 @@ export class AuthService {
       },
     });
 
-    return this.generateAccessToken(email);
+    return this.generateAccessToken(email, picture);
   }
 
   async signInWithGoogle({
@@ -50,7 +50,7 @@ export class AuthService {
 
       if (!user) return this.createUser({ email, picture });
 
-      return this.generateAccessToken(email);
+      return this.generateAccessToken(email, picture);
     } catch (error) {
       throw new UnauthorizedException();
     }
@@ -73,11 +73,11 @@ export class AuthService {
     if (!(await compare(password, user.password)))
       throw new UnauthorizedException();
 
-    return this.generateAccessToken(email);
+    return this.generateAccessToken(email, user.picture);
   }
 
-  private generateAccessToken(email: string): JwtResponse {
-    return { accessToken: this.jwtService.sign({ email }) };
+  private generateAccessToken(email: string, picture?: string): JwtResponse {
+    return { accessToken: this.jwtService.sign({ email, picture }) };
   }
 
   private async findUser(email: string): Promise<User> {
