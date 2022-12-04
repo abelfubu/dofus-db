@@ -1,18 +1,13 @@
-import {
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import { compare, genSalt, hash } from 'bcrypt';
 
+import { OAuth2Client } from 'google-auth-library';
 import { PrismaService } from 'src/prisma.service';
 import { AuthCredentialsDto } from './models/auth-credentials.dto';
-import { JwtResponse } from './models/jwt-response';
 import { GoogleCredentialsDto } from './models/google-credentials.dto';
-import { OAuth2Client } from 'google-auth-library';
-import { UserCredentials } from './models/user-credentials';
+import { JwtResponse } from './models/jwt-response';
 
 @Injectable()
 export class AuthService {
@@ -21,12 +16,21 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async createUser({ email, password }: UserCredentials): Promise<JwtResponse> {
+  async createUser({
+    email,
+    password,
+    picture,
+  }: {
+    email: string;
+    password?: string;
+    picture?: string;
+  }): Promise<JwtResponse> {
     await this.prisma.user.create({
       data: {
         email,
         password: password ? await this.hashPassword(password) : 'google',
         harvest: { create: { name: 'default' } },
+        ...(picture && { picture }),
       },
     });
 
@@ -41,10 +45,10 @@ export class AuthService {
     try {
       const client = new OAuth2Client(audience);
       const ticket = await client.verifyIdToken({ idToken, audience });
-      const { email } = ticket.getPayload();
+      const { email, picture } = ticket.getPayload();
       const user = await this.findUser(email);
 
-      if (!user) return this.createUser({ email });
+      if (!user) return this.createUser({ email, picture });
 
       return this.generateAccessToken(email);
     } catch (error) {
