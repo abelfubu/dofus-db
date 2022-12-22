@@ -1,9 +1,15 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Harvest, HarvestItem, User } from '@prisma/client';
 
 import { PrismaService } from 'src/prisma.service';
 import { HarvestUpdateItemDto } from './dtos/harvest-update-item.dto';
 import { HarvestResponse } from './models/harvest-response';
+import { RefreshResponse } from './models/refresh-response';
 
 type UserHarvestMap = Record<
   string,
@@ -65,6 +71,31 @@ export class HarvestService {
     };
   }
 
+  async getHarvest(id: string): Promise<any> {
+    try {
+      const userHarvest = await this.prisma.userHarvest.findFirst({
+        where: { id },
+        include: { harvest: true },
+      });
+
+      if (!userHarvest) throw new NotFoundException();
+
+      const userHarvestMap = this.getUserHarvestToMap(userHarvest.harvest);
+
+      return {
+        harvest: this.getUserMixedData(HARVESTLIST.data, userHarvestMap),
+        harvestId: null,
+      };
+    } catch {
+      throw new InternalServerErrorException();
+    }
+  }
+
+  refresh(): RefreshResponse {
+    HARVESTLIST.data = null;
+    return { success: true };
+  }
+
   private getUserMixedData(
     harvest: Harvest[],
     userHarvestMap: UserHarvestMap,
@@ -79,12 +110,8 @@ export class HarvestService {
   }
 
   private getUserHarvestToMap(harvest: HarvestItem[]): UserHarvestMap {
-    return harvest.reduce((acc, value) => {
-      acc[value.harvestId] = {
-        id: value.id,
-        captured: value.captured,
-        amount: value.amount,
-      };
+    return harvest.reduce((acc, { harvestId, id, captured, amount }) => {
+      acc[harvestId] = { id, captured, amount };
       return acc;
     }, {});
   }

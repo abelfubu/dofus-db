@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { User } from '@prisma/client';
 
 import { GetUser } from 'src/auth/get-user.decorator';
@@ -6,6 +6,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { HarvestUpdateItemDto } from './dtos/harvest-update-item.dto';
 import { HarvestService } from './harvest.service';
 import { HarvestResponse } from './models/harvest-response';
+import { RefreshResponse } from './models/refresh-response';
 
 @Controller('harvest')
 export class HarvestController {
@@ -15,6 +16,17 @@ export class HarvestController {
   @UseGuards(JwtAuthGuard)
   getAll(@GetUser() user: User): Promise<HarvestResponse> {
     return this.harvestService.getAll(user);
+  }
+
+  @Get('refresh')
+  refresh(): RefreshResponse {
+    return this.harvestService.refresh();
+  }
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  getHarvest(@Param('id') id: string): Promise<HarvestResponse> {
+    return this.harvestService.getHarvest(id);
   }
 
   @Post()
