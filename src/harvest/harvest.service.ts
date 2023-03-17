@@ -5,19 +5,14 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Harvest, HarvestItem, User } from '@prisma/client';
+import { MixedHarvest } from 'src/harvest/models/mixed-harvest';
 
 import { PrismaService } from 'src/prisma.service';
 import { HarvestUpdateItemDto } from './dtos/harvest-update-item.dto';
 import { HarvestResponse } from './models/harvest-response';
 import { RefreshResponse } from './models/refresh-response';
 
-type UserHarvestMap = Record<
-  string,
-  {
-    captured: boolean;
-    amount: number;
-  }
->;
+type UserHarvestMap = Record<string, HarvestItem>;
 
 const HARVESTLIST = { data: null };
 
@@ -71,7 +66,7 @@ export class HarvestService {
     };
   }
 
-  async getHarvest(id: string): Promise<any> {
+  async getHarvest(id: string): Promise<HarvestResponse> {
     try {
       const userHarvest = await this.prisma.userHarvest.findFirst({
         where: { id },
@@ -91,6 +86,30 @@ export class HarvestService {
     }
   }
 
+  async completeSteps(steps: number[], user: User): Promise<HarvestResponse> {
+    const { harvest } = await this.getAll(user);
+
+    if (!harvest) throw new NotFoundException();
+
+    const { captured, repeated } = this.getCapturedAndRepeated(harvest, steps);
+
+    try {
+      await this.prisma.harvestItem.updateMany({
+        where: { id: { in: captured } },
+        data: { captured: false },
+      });
+
+      await this.prisma.harvestItem.updateMany({
+        where: { id: { in: repeated } },
+        data: { amount: { decrement: 1 } },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
+
+    return await this.getAll(user);
+  }
+
   refresh(): RefreshResponse {
     HARVESTLIST.data = null;
     return { success: true };
@@ -99,13 +118,13 @@ export class HarvestService {
   private getUserMixedData(
     harvest: Harvest[],
     userHarvestMap: UserHarvestMap,
-  ): Harvest[] {
+  ): MixedHarvest[] {
     return harvest.map((item) => {
       const exist = userHarvestMap[item.id];
 
       if (!exist) return item;
 
-      return { ...item, ...userHarvestMap[item.id] };
+      return { ...item, ...userHarvestMap[item.id] } as any;
     });
   }
 
@@ -114,6 +133,26 @@ export class HarvestService {
       acc[harvestId] = { id, captured, amount };
       return acc;
     }, {});
+  }
+
+  private getCapturedAndRepeated(
+    harvest: MixedHarvest[],
+    steps: number[],
+  ): { captured: string[]; repeated: string[] } {
+    return harvest.reduce(
+      (acc, curr) => {
+        if (!steps.includes(curr.step)) return acc;
+
+        if (curr.amount) {
+          acc.repeated.push(curr.id);
+          return acc;
+        }
+
+        acc.captured.push(curr.id);
+        return acc;
+      },
+      { captured: [], repeated: [] },
+    );
   }
 
   private getQuery(id: string): Record<string, string> {

@@ -1,6 +1,6 @@
-import { Harvest } from '@prisma/client';
+import { MixedHarvest } from 'src/harvest/models/mixed-harvest';
 
 export interface HarvestResponse {
-  harvest: Harvest[];
+  harvest: MixedHarvest[];
   harvestId: string;
 }
