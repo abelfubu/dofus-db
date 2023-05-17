@@ -49,14 +49,22 @@ export class HarvestService {
     if (!user.id) return { harvest: HARVESTLIST.data, harvestId: null };
 
     const query = {
-      where: { userId: user.id, ...this.getQuery(user.currentHarvestId) },
-      include: { harvest: true },
+      where: {
+        userId: user.id,
+        ...this.getQuery(user.currentHarvestId),
+      },
+      include: {
+        harvest: true,
+      },
     };
 
     const userHarvest = await this.prisma.userHarvest.findFirst(query);
 
     if (!userHarvest.harvest.length)
-      return { harvest: HARVESTLIST.data, harvestId: userHarvest.id };
+      return {
+        harvest: HARVESTLIST.data,
+        harvestId: userHarvest.id,
+      };
 
     const userHarvestMap = this.getUserHarvestToMap(userHarvest.harvest);
 

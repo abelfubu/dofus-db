@@ -1,9 +1,9 @@
 import { PrismaClient } from '@prisma/client';
-import * as data from './harvest-data.json';
+import * as data from './harvest-data-new.json';
 
 const prisma = new PrismaClient();
 
-function mapType(item: string): number {
+function mapType(item: number): number {
   return {
     monster: 0,
     boss: 1,
@@ -13,7 +13,7 @@ function mapType(item: string): number {
 
 async function main() {
   for (const item of data) {
-    await prisma.harvest.create({
+    await prisma.harvest.update({
       data: {
         name: item.name,
         image: item.image,
@@ -21,8 +21,15 @@ async function main() {
         subzone: item.subzone,
         zone: item.zone,
         step: item.step,
-        type: mapType(item.type),
+        type: mapType(item.type as number),
+        en: item.en,
+        es: item.es,
+        fr: item.fr,
+        de: item.de,
+        it: item.it,
+        pt: item.pt,
       },
+      where: { id: String(item.id) },
     });
   }
 }

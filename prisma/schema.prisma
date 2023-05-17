@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Harvest {
-  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  id              String             @id @default(auto()) @map("_id") @db.ObjectId
   level           String
   image           String
   name            String
@@ -17,6 +17,17 @@ model Harvest {
   step            Int
   zone            String
   harvestItemList HarvestItem[]
+  es              HarvestTranslation
+  en              HarvestTranslation
+  de              HarvestTranslation
+  it              HarvestTranslation
+  fr              HarvestTranslation
+  pt              HarvestTranslation
+}
+
+type HarvestTranslation {
+  name    String
+  subzone String
 }
 
 model HarvestItem {
@@ -40,7 +51,7 @@ model UserHarvest {
 model User {
   id               String        @id @default(auto()) @map("_id") @db.ObjectId
   email            String
-  password         String? 
+  password         String?
   picture          String?
   currentHarvestId String        @default("")
   harvest          UserHarvest[]
