@@ -26,6 +26,19 @@ export class HarvestService {
   ): Promise<void> {
     if (!user) throw new UnauthorizedException();
 
+    const isNew = await this.prisma.harvestItem.findFirst({
+      where: { harvestId: id },
+    });
+
+    if (isNew) {
+      await this.prisma.harvestItem.update({
+        where: { id: isNew.id },
+        data: { captured, amount },
+      });
+
+      return;
+    }
+
     await this.prisma.harvestItem.upsert({
       where: { id },
       update: {

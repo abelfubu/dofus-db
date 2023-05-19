@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { AuthModule } from 'src/auth/auth.module';
-import { PrismaService } from 'src/prisma.service';
+import { AuthModule } from '../auth/auth.module';
+import { PrismaService } from '../prisma.service';
 import { HarvestController } from './harvest.controller';
 import { HarvestService } from './harvest.service';
 
