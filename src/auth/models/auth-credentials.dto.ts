@@ -10,4 +10,8 @@ export class AuthCredentialsDto {
     message: 'password is weak',
   })
   password: string;
+
+  discord?: string;
+
+  server?: string;
 }

@@ -57,7 +57,7 @@ export class AuthService {
 
       return this.generateAccessToken({ email, picture, provider });
     } catch (error) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException(error);
     }
   }
 
