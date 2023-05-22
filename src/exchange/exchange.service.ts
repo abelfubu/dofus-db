@@ -7,12 +7,12 @@ import { ExchangeResponse } from './models/exchange.response';
 export class ExchangeService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async get(user: User): Promise<ExchangeResponse[]> {
-    if (!user.id) throw new UnauthorizedException();
+  async get({ id, serverId }: User): Promise<ExchangeResponse[]> {
+    if (!id) throw new UnauthorizedException();
 
     const missing = await this.prisma.harvestItem.findMany({
       where: {
-        userHarvest: { user: { email: 'test@test.com' } },
+        userHarvest: { user: { id } },
         AND: {
           captured: true,
         },
@@ -23,25 +23,34 @@ export class ExchangeService {
     });
 
     const exchange = await this.prisma.user.findMany({
+      orderBy: {
+        activeAt: 'desc',
+      },
       where: {
-        email: 'test@test.com',
+        id: { not: id },
+        serverId,
       },
       select: {
         picture: true,
         nickname: true,
         discord: true,
-        // email: true,
+        server: {
+          select: {
+            name: true,
+          },
+        },
+        userHarvestId: true,
         harvest: {
           select: {
             harvest: {
               select: {
-                harvest: {
-                  select: { name: true },
-                },
+                harvest: true,
               },
               where: {
                 amount: { gt: 0 },
-                AND: { harvestId: { notIn: missing.map((x) => x.harvestId) } },
+                AND: {
+                  harvestId: { notIn: missing.map((x) => x.harvestId) },
+                },
               },
             },
           },
@@ -49,26 +58,24 @@ export class ExchangeService {
       },
     });
 
-    // const abel = await this.prisma.harvestItem.findMany({
-    //   where: { userHarvest: { user: { email: 'abelfubu@gmail.com' } } },
-    //   select: {
-    //     id: true,
-    //     harvestId: true,
-    //     amount: true,
-    //     captured: true,
-    //     harvest: {
-    //       select: { name: true, id: true },
-    //     },
-    //   },
-    // });
-
-    // return {
-    // check: abel,
-
     return exchange.map((user) => ({
-      ...user,
-      harvest: user.harvest.harvest.map((x) => x.harvest.name),
+      picture: user.picture,
+      nickname: user.nickname,
+      discord: user.discord,
+      userHarvestId: user.userHarvestId,
+      server: user.server.name,
+      harvestId: user.harvest,
+      harvest: user.harvest.harvest.reduce(
+        (acc, user) => {
+          acc[user.harvest.type].push(user.harvest);
+          return acc;
+        },
+        {
+          0: [],
+          1: [],
+          2: [],
+        },
+      ),
     }));
-    // };
   }
 }
