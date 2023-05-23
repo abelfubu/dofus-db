@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { User } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { ExchangeResponse } from './models/exchange.response';
@@ -9,6 +13,8 @@ export class ExchangeService {
 
   async get({ id, serverId }: User): Promise<ExchangeResponse[]> {
     if (!id) throw new UnauthorizedException();
+
+    if (!serverId) throw new BadRequestException();
 
     const missing = await this.prisma.harvestItem.findMany({
       where: {

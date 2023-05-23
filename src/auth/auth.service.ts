@@ -33,7 +33,7 @@ export class AuthService {
       data: {
         email,
         password: password ? await this.hashPassword(password) : 'google',
-        harvest: {},
+        harvest: { create: { name: 'default' } },
         ...(picture && { picture }),
       },
     });

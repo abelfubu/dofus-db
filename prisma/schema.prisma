@@ -45,7 +45,7 @@ model UserHarvest {
   name    String        @default("default")
   harvest HarvestItem[]
   user    User?
-  userId  String        @unique @db.ObjectId
+  userId  String?       @unique @db.ObjectId
 }
 
 model User {
