@@ -5,11 +5,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Harvest, HarvestItem, User } from '@prisma/client';
-import { MixedHarvest } from 'src/harvest/models/mixed-harvest';
 
 import { PrismaService } from 'src/prisma.service';
 import { HarvestUpdateItemDto } from './dtos/harvest-update-item.dto';
 import { HarvestResponse } from './models/harvest-response';
+import { MixedHarvest } from './models/mixed-harvest';
 import { RefreshResponse } from './models/refresh-response';
 
 type UserHarvestMap = Record<string, HarvestItem>;
@@ -59,17 +59,32 @@ export class HarvestService {
       HARVESTLIST.data = await this.prisma.harvest.findMany();
     }
 
-    if (!user.id) return { harvest: HARVESTLIST.data, harvestId: null };
+    if (!user.id)
+      return {
+        harvest: HARVESTLIST.data,
+        harvestId: null,
+        user: { ...user, server: null },
+      };
 
     const userHarvest = await this.prisma.userHarvest.findUnique({
       where: { id: user.userHarvestId },
-      include: { harvest: true },
+      include: {
+        harvest: true,
+        user: { select: { server: { select: { name: true } } } },
+      },
     });
+
+    const userInfo = {
+      nickname: user.nickname,
+      discord: user.discord,
+      server: userHarvest.user.server.name,
+    };
 
     if (!userHarvest.harvest.length)
       return {
         harvest: HARVESTLIST.data,
         harvestId: user.userHarvestId,
+        user: userInfo,
       };
 
     const userHarvestMap = this.getUserHarvestToMap(userHarvest.harvest);
@@ -77,6 +92,7 @@ export class HarvestService {
     return {
       harvest: this.getUserMixedData(HARVESTLIST.data, userHarvestMap),
       harvestId: userHarvest.id,
+      user: userInfo,
     };
   }
 
@@ -84,16 +100,26 @@ export class HarvestService {
     try {
       const userHarvest = await this.prisma.userHarvest.findFirst({
         where: { id },
-        include: { harvest: true },
+        include: {
+          harvest: true,
+          user: { include: { server: { select: { name: true } } } },
+        },
       });
 
       if (!userHarvest) throw new NotFoundException();
 
       const userHarvestMap = this.getUserHarvestToMap(userHarvest.harvest);
 
+      const userInfo = {
+        nickname: userHarvest.user.nickname,
+        discord: userHarvest.user.discord,
+        server: userHarvest.user.server.name,
+      };
+
       return {
         harvest: this.getUserMixedData(HARVESTLIST.data, userHarvestMap),
         harvestId: null,
+        user: userInfo,
       };
     } catch {
       throw new InternalServerErrorException();
