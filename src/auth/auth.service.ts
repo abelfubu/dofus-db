@@ -38,7 +38,12 @@ export class AuthService {
       },
     });
 
-    return this.generateAccessToken({ email, picture, provider });
+    return this.generateAccessToken({
+      email,
+      picture,
+      provider,
+      nickname: null,
+    });
   }
 
   async signInWithGoogle({
@@ -55,7 +60,12 @@ export class AuthService {
 
       if (!user) return this.createUser({ email, picture, provider });
 
-      return this.generateAccessToken({ email, picture, provider });
+      return this.generateAccessToken({
+        email,
+        picture,
+        provider,
+        nickname: user.nickname,
+      });
     } catch (error) {
       throw new UnauthorizedException(error);
     }
@@ -73,13 +83,22 @@ export class AuthService {
         data: { password: await this.hashPassword(password) },
       });
 
-      return this.generateAccessToken({ email, provider });
+      return this.generateAccessToken({
+        email,
+        provider,
+        nickname: user.nickname,
+      });
     }
 
     if (!(await compare(password, user.password)))
       throw new UnauthorizedException();
 
-    return this.generateAccessToken({ email, provider, picture: user.picture });
+    return this.generateAccessToken({
+      email,
+      provider,
+      picture: user.picture,
+      nickname: user.nickname,
+    });
   }
 
   private generateAccessToken(payload: JwtPayload): JwtResponse {

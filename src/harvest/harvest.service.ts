@@ -97,7 +97,19 @@ export class HarvestService {
   }
 
   async getHarvest(id: string): Promise<HarvestResponse> {
+    if (!HARVESTLIST.data) {
+      HARVESTLIST.data = await this.prisma.harvest.findMany();
+    }
+
     try {
+      const user = await this.prisma.user.findFirst({
+        where: { nickname: { equals: id, mode: 'insensitive' } },
+      });
+
+      if (user.userHarvestId) {
+        id = user.userHarvestId;
+      }
+
       const userHarvest = await this.prisma.userHarvest.findFirst({
         where: { id },
         include: {
