@@ -27,7 +27,7 @@ export class HarvestService {
     if (!user) throw new UnauthorizedException();
 
     const isNew = await this.prisma.harvestItem.findFirst({
-      where: { harvestId: id },
+      where: { harvestId: id, userHarvestId: harvestId },
     });
 
     if (isNew) {
