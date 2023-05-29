@@ -4,6 +4,7 @@ import { User } from '@prisma/client';
 import { compare, genSalt, hash } from 'bcrypt';
 import { OAuth2Client } from 'google-auth-library';
 
+import { response } from 'express';
 import { PrismaService } from 'src/prisma.service';
 import { AuthCredentialsDto } from './models/auth-credentials.dto';
 import { GoogleCredentialsDto } from './models/google-credentials.dto';
@@ -82,6 +83,21 @@ export class AuthService {
         where: { id: user.id },
         data: { password: await this.hashPassword(password) },
       });
+
+      response.cookie(
+        'jwt',
+        JSON.stringify(
+          this.generateAccessToken({
+            email,
+            provider,
+            nickname: user.nickname,
+          }),
+        ),
+        {
+          httpOnly: true,
+          secure: true,
+        },
+      );
 
       return this.generateAccessToken({
         email,
